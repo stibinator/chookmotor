@@ -1,10 +1,7 @@
+//low power sleep library
 #include <JeeLib.h>
 
 ISR(WDT_vect) { Sleepy::watchdogEvent(); }
-
-////low power sleep library
-
-//#include <Adafruit_SleepyDog.h>
 
 // ----pin assignment----
 const int forward = 3; // connects to motor relay
