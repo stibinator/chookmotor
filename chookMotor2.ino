@@ -12,11 +12,11 @@ const int doorUpSensor = 5; // switch goes low when door is up
 const int doorDownSensor = 4; // switch goes low when door down
 const int lightMeter = 6; // to LDR module
 const int lightMeterPower = 7; // vcc for light meter module
-const bool UP = true;
-const bool DOWN = false;
 
 // ----more constants
-const float doorTime = 60; // how long to wait for the door to close (seconds)
+const bool UP = true;
+const bool DOWN = false;
+const float doorTime = 60.0; // how long to wait for the door to close (seconds)
 const int loopDelay = 60; // sleep time (seconds)
 const int maxAttempts = 3;// how many times to try and fix errors
 const int numSamples = 10; // how many samples to take when deciding on day/night status
