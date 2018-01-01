@@ -22,7 +22,7 @@ const int maxAttempts = 3;// how many times to try and fix errors
 const int numSamples = 10; // how many samples to take when deciding on day/night status
 const float motorLatency = 50.0; // how many ms between checking the door sensors to see if door is fully open/closed while raising/lowering
 
-// ----globals----
+// ----global variables----
 int sampleNum = 0; // ring buffer index
 int readings[numSamples]; // the array of light readings
 bool isError = false; // global error state
@@ -48,38 +48,29 @@ void setup() {
     } else {
       flash(1,250);
     }
-     delay(100);
-  }
-  // check the current conditions and set the door
-  // checkDaylight returns true if daytime, up == true
-  if(checkDaylight()){
-    moveDoor(UP);
-
-  } else {
-    moveDoor(DOWN);
-  }
-  if (isError){
-    flash(10,50);
+    delay(100);
   }
 }
 
-// ------------- the Main Hoo-Hah------------------
 void loop() {
-
+  //check current conditions and set door accordingly
   if (checkDaylight()){
+    // ------------- Day time ------------------
     if (isDoor(UP)){
-      // daytime, door open, nothing to do
+      // door open, nothing to do
       powerDownMotor();
     } else {
-      // daytime door is down, time to open up
+      // daytime but door is down, time to open up
       if (isError){
-        // error condition, handle it
+        // --------- existing error condition, handle it. ------------
+        // If the door doesn't go up it could be a flat battery
+        // so wait an hour for the batteries to charge
         if (waitAnHour > 0){
-          //hasn't been 60 cycles since the last attempt yet
+          // hasn't been 60 cycles since the last attempt yet
           waitAnHour--;
         } else {
           // the hour is up,
-          // have another go
+          // have another go, as long as we haven't gone over the max attempts
           if (attempts < maxAttempts){
             isError = moveDoor(UP);
             attempts++;
@@ -88,21 +79,23 @@ void loop() {
           waitAnHour = 60;
         }
       } else {
-        // No error, proceed with opoening the door
+        // ------- No error, proceed with opoening the door ------------
         attempts = 0;
         isError = moveDoor(UP);
         //succesfully opened door, reset the error count
       }
-    }
-    //--------------end of the daylight part of the cycle-------------
+    } //--------------end of the daylight part of the cycle-------------
+
   } else if (checkNightTime){
+    // ------------- Night time ------------------
     if (isDoor(DOWN)){
       // nighttime, door closed, nothing to do
       powerDownMotor();
     } else {
       // nighttime door is up, time to close down
       if (isError){
-        // error condition, only try shutting the door until attempts >= maxAttempts
+        // --------- existing error condition, handle it. ------------
+        // only try shutting the door until attempts >= maxAttempts
         if (attempts < maxAttempts){
           isError = moveDoor(DOWN);
           attempts++;
@@ -115,129 +108,130 @@ void loop() {
         attempts = 0;
         isError = moveDoor(DOWN);
       }
-    }
-    //-------------end of the nighttime part of the cycle-------------
-  } // else{
-    // NB there will be some time during the day when neither checkNightTime or checkDaylight is true
-    // here is where you would handle that
-    // }
+    } //-------------end of the nighttime part of the cycle-------------
 
-    // feeble attention-getting device for errors
-    if (isError){
-      flash(10, 50);
-    }
-    // end of the main loop. Shut up and go to sleep for a while
-    Sleepy::loseSomeTime(loopDelay*1000);
   }
-
-
-  int getReading(){
-    // record daylight conditions
-    digitalWrite(lightMeterPower, HIGH);
-    // LDR module needs some time to power up
-    Sleepy::loseSomeTime(200);
-    // the lightmeter module goes LOW when it's light
-    readings[sampleNum] = (digitalRead(lightMeter) == LOW);
-    // increment the index and roll it around if it's at the end
-    sampleNum = (sampleNum + 1) % numSamples;
-    // thelightmeterdrains power, so turn it off between readings
-    digitalWrite(lightMeterPower, LOW);
-  }
-
-  void powerDownMotor(){
-    // turn off motor and relays
-    digitalWrite(forward, HIGH); // high de-energises the relays
-    digitalWrite(backward, HIGH);
-  }
-
-  bool isDoor(bool UPDN){
-    // returns true if door is fully up or down
-    // Switch goes low when it's triggered
-    bool swState;
-    if (UPDN == UP){
-      swState = digitalRead(doorUpSensor)==LOW;
-    } else {
-      swState = digitalRead(doorDownSensor)==LOW;
-    }
-    if (swState){
-      // do this now, or it will have to wait until after the dalay in the outer loop
-      powerDownMotor();
-    }
-    return swState;
-  }
-
-
-  bool moveDoor(bool UPDN){
-    //turn on the motor untill the door open sensor is triggered
-    // or until it times out
-    if (UPDN == UP){
-
-    } else {
-
-    }
-    int i = 0;
-    // doorTime * 10 * 100ms pause = door time in seconds
-    while ((! isDoor(UPDN)) && (i < doorTime * 1000/motorLatency)){
-      // if it hasn't raised the door within the set time something's wrong
-      i++;
-      if (UPDN == UP){
-
-      } else {
-
-      }
-      motor(UPDN);
-      delay(motorLatency); // at most 0.1 seconds latency
-    }
-    powerDownMotor();
-
-    return((i >= doorTime)); // has the door timed out?
-  }
-
-  void motor(bool UPDN) {
-    if (UPDN == UP){
-      digitalWrite(forward, LOW);
-      digitalWrite(backward, HIGH);
-    } else {
-      digitalWrite(forward, HIGH);
-      digitalWrite(backward, LOW);
-      //   digitalWrite(enable, HIGH);
-    }
-  }
-
-
-
-  bool checkDaylight(){
-    getReading();
-    bool dayTime = false;
-    // returns true unless all readings are false
-    for(int i=0; i < numSamples; i++){
-      dayTime = dayTime || readings[i];
-    }
-
-    return dayTime;
-  }
-
-  bool checkNightTime(){
-    getReading();
-    bool dayTime = true;
-    // returns false unless all readings are true
-    for(int i=0; i < numSamples; i++){
-      dayTime = dayTime && readings[i];
-    }
-    return (! dayTime);
-  }
-
-  void flash(int num, int space){
-    for (int f=0;f<num;f++){
-      // flash the LED if error
-      digitalWrite(ERROR_LED, HIGH);
-      Sleepy::loseSomeTime(space);
-      digitalWrite(ERROR_LED, LOW);
-      Sleepy::loseSomeTime(space);
-    }
-  }
-
-  // void msg(String payload){
-  // Serial.print((String)payload + "\n"); // avoid clogging up the usb port
-  // delay(200);
+  // else{
+  // NB there will be some time during the day when neither checkNightTime or checkDaylight is true
+  // here is where you would handle that
   // }
+
+  // feeble attention-getting device for errors
+  if (isError){
+    flash(10, 50); //TODO put the LED on the solar panels so I can see it
+  }
+  // end of the main loop. Shut up and go to sleep for a while
+  Sleepy::loseSomeTime(loopDelay*1000);
+}
+
+
+int getReading(){
+  // record daylight conditions
+  digitalWrite(lightMeterPower, HIGH);
+  // LDR module needs some time to power up
+  Sleepy::loseSomeTime(200);
+  // the lightmeter module goes LOW when it's light
+  readings[sampleNum] = (digitalRead(lightMeter) == LOW);
+  // increment the index and roll it around if it's at the end
+  sampleNum = (sampleNum + 1) % numSamples;
+  // thelightmeterdrains power, so turn it off between readings
+  digitalWrite(lightMeterPower, LOW);
+}
+
+void powerDownMotor(){
+  // turn off motor and relays
+  digitalWrite(forward, HIGH); // high de-energises the relays
+  digitalWrite(backward, HIGH);
+}
+
+bool isDoor(bool UPDN){
+  // returns true if door is fully up or down
+  // Switch goes low when it's triggered
+  bool swState;
+  if (UPDN == UP){
+    swState = digitalRead(doorUpSensor)==LOW;
+  } else {
+    swState = digitalRead(doorDownSensor)==LOW;
+  }
+  if (swState){
+    // do this now, or it will have to wait until after the dalay in the outer loop
+    powerDownMotor();
+  }
+  return swState;
+}
+
+
+bool moveDoor(bool UPDN){
+  //turn on the motor untill the door open sensor is triggered
+  // or until it times out
+  if (UPDN == UP){
+
+  } else {
+
+  }
+  int i = 0;
+  // doorTime * 10 * 100ms pause = door time in seconds
+  while ((! isDoor(UPDN)) && (i < doorTime * 1000/motorLatency)){
+    // if it hasn't raised the door within the set time something's wrong
+    i++;
+    if (UPDN == UP){
+
+    } else {
+
+    }
+    motor(UPDN);
+    delay(motorLatency); // at most 0.1 seconds latency
+  }
+  powerDownMotor();
+
+  return((i >= doorTime)); // has the door timed out?
+}
+
+void motor(bool UPDN) {
+  if (UPDN == UP){
+    digitalWrite(forward, LOW);
+    digitalWrite(backward, HIGH);
+  } else {
+    digitalWrite(forward, HIGH);
+    digitalWrite(backward, LOW);
+    //   digitalWrite(enable, HIGH);
+  }
+}
+
+
+
+bool checkDaylight(){
+  getReading();
+  bool dayTime = false;
+  // returns true unless all readings are false
+  for(int i=0; i < numSamples; i++){
+    dayTime = dayTime || readings[i];
+  }
+
+  return dayTime;
+}
+
+bool checkNightTime(){
+  getReading();
+  bool dayTime = true;
+  // returns false unless all readings are true
+  for(int i=0; i < numSamples; i++){
+    dayTime = dayTime && readings[i];
+  }
+  return (! dayTime);
+}
+
+void flash(int num, int space){
+  for (int f=0;f<num;f++){
+    // flash the LED if error
+    digitalWrite(ERROR_LED, HIGH);
+    Sleepy::loseSomeTime(space);
+    digitalWrite(ERROR_LED, LOW);
+    Sleepy::loseSomeTime(space);
+  }
+}
+
+// void msg(String payload){
+// Serial.print((String)payload + "\n"); // avoid clogging up the usb port
+// delay(200);
+// }
