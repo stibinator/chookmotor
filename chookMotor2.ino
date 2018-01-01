@@ -32,7 +32,6 @@ int waitAnHour = 60; // wait loop for errors
 // the setup function runs once when you press reset or power the board
 void setup() {
   // Serial.begin(115200);
-  // msg("chookrobot");
   pinMode(forward, OUTPUT);
   pinMode(backward, OUTPUT);
   pinMode(doorUpSensor, INPUT_PULLUP);
@@ -44,7 +43,6 @@ void setup() {
   // fill up the sample array
   for (int i = 0; i < numSamples; i++){
     getReading();
-      // msg((String)readings[i]);
     if (readings[i]){
       flash(3,50);
     } else {
@@ -55,11 +53,9 @@ void setup() {
   // check the current conditions and set the door
   // checkDaylight returns true if daytime, up == true
   if(checkDaylight()){
-    // msg("day");
     moveDoor(UP);
 
   } else {
-    // msg("night");
     moveDoor(DOWN);
   }
   if (isError){
@@ -69,8 +65,6 @@ void setup() {
 
 // ------------- the Main Hoo-Hah------------------
 void loop() {
-   // msg("main loop");
-   // msg("isError: " + (String)isError);
 
   if (checkDaylight()){
     if (isDoor(UP)){
@@ -165,13 +159,10 @@ void loop() {
     } else {
       swState = digitalRead(doorDownSensor)==LOW;
     }
-    // msg("switch = " + (String)swState);
-     // msg("isDoor:UP " + (String)swState);
     if (swState){
       // do this now, or it will have to wait until after the dalay in the outer loop
       powerDownMotor();
     }
-    // msg("isdoor returns" + (String)swState);
     return swState;
   }
 
@@ -180,33 +171,25 @@ void loop() {
     //turn on the motor untill the door open sensor is triggered
     // or until it times out
     if (UPDN == UP){
-      // msg("Moving door up\n");
 
     } else {
-      // msg("Moving door down\n");
 
     }
     int i = 0;
     // doorTime * 10 * 100ms pause = door time in seconds
-    // msg("moveDoor logic returns " + (String)i + ", " + (String)doorTime + ", " + (String)motorLatency);
     while ((! isDoor(UPDN)) && (i < doorTime * 1000/motorLatency)){
       // if it hasn't raised the door within the set time something's wrong
       i++;
       if (UPDN == UP){
-        // msg("^");
 
       } else {
-        // msg("v");
 
       }
       motor(UPDN);
-      // msg("waiting for door: " + (String)i);
       delay(motorLatency); // at most 0.1 seconds latency
     }
     powerDownMotor();
 
-     // msg("raising door took: ");
-     // msg((String)i);
     return((i >= doorTime)); // has the door timed out?
   }
 
@@ -224,7 +207,6 @@ void loop() {
 
 
   bool checkDaylight(){
-     // msg("CheckDaylight");
     getReading();
     bool dayTime = false;
     // returns true unless all readings are false
@@ -232,21 +214,16 @@ void loop() {
       dayTime = dayTime || readings[i];
     }
 
-     // msg("dayTime: ");
-     // msg((String)dayTime);
     return dayTime;
   }
 
   bool checkNightTime(){
-     // msg("CheckNightTime");
     getReading();
     bool dayTime = true;
     // returns false unless all readings are true
     for(int i=0; i < numSamples; i++){
       dayTime = dayTime && readings[i];
     }
-     // msg("dayTime: ");
-     // msg((String)dayTime);
     return (! dayTime);
   }
 
