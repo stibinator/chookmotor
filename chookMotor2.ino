@@ -11,9 +11,9 @@ const int ERROR_LED = 8;
 const int doorUpSensor = 5; // switch goes low when door is up
 const int doorDownSensor = 4; // switch goes low when door down
 const int lightMeter = 6; // to LDR module
-const int lightMeterPower = 7; // vcc for light meter module
+const int lightMeterPower = 7; // to Vcc for light meter module, so we can power it up & down
 
-// ----more constants
+// ----more constants-----
 const bool UP = true;
 const bool DOWN = false;
 const float doorTime = 60.0; // how long to wait for the door to close (seconds)
@@ -29,9 +29,8 @@ bool isError = false; // global error state
 int attempts = 0; // counts attempts to close the door on an error
 int waitAnHour = 60; // wait loop for errors
 
-// the setup function runs once when you press reset or power the board
+
 void setup() {
-  // Serial.begin(115200);
   pinMode(forward, OUTPUT);
   pinMode(backward, OUTPUT);
   pinMode(doorUpSensor, INPUT_PULLUP);
