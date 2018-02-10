@@ -60,31 +60,11 @@ void loop() {
       powerDownMotor();
     } else {
       // daytime but door is down, time to open up
-      if (isError){
-        // --------- existing error condition, handle it. ------------
-        // If the door doesn't go up it could be a flat battery
-        // so wait an hour for the batteries to charge
-        if (waitAnHour > 0){
-          // hasn't been 60 cycles since the last attempt yet
-          waitAnHour--;
-        } else {
-          // the hour is up,
-          // have another go, as long as we haven't gone over the max attempts
-          if (attempts < maxAttempts){
-            isError = moveDoor(UP);
-            attempts++;
-          }
-          // reset the counter
-          waitAnHour = 60;
-        }
-      } else {
-        // ------- No error, proceed with opoening the door ------------
-        attempts = 0;
-        isError = moveDoor(UP);
-        //succesfully opened door, reset the error count
-      }
-    } //--------------end of the daylight part of the cycle-------------
-
+      // ------- No error, proceed with opoening the door ------------
+      isError = moveDoor(UP);
+      //succesfully opened door, reset the error count
+    }
+    //--------------end of the daylight part of the cycle-------------
   } else if (checkNightTime){
     // ------------- Night time ------------------
     if (isDoor(DOWN)){
@@ -92,28 +72,16 @@ void loop() {
       powerDownMotor();
     } else {
       // nighttime door is up, time to close down
-      if (isError){
-        // --------- existing error condition, handle it. ------------
-        // only try shutting the door until attempts >= maxAttempts
-        if (attempts < maxAttempts){
-          isError = moveDoor(DOWN);
-          attempts++;
-        } else{
-          // could call home if we had a web connection
-          // can't do anything more
-        }
-      } else {
-        // No error, proceed with closing the door
-        attempts = 0;
-        isError = moveDoor(DOWN);
-      }
-    } //-------------end of the nighttime part of the cycle-------------
+      isError = moveDoor(DOWN);
+    }
+    //-------------end of the nighttime part of the cycle-------------
 
   }
-  // else{
-  // NB there will be some time during the day when neither checkNightTime or checkDaylight is true
-  // here is where you would handle that
-  // }
+  else{
+    // NB there will be some time during the day when neither checkNightTime or checkDaylight is true
+    // here is where we handle that
+    powerDownMotor();
+  }
 
   // feeble attention-getting device for errors
   if (isError){
@@ -141,6 +109,8 @@ void powerDownMotor(){
   // turn off motor and relays
   digitalWrite(forward, HIGH); // high de-energises the relays
   digitalWrite(backward, HIGH);
+  //turn off the indicator LED if it's on
+  digitalWrite(ERROR_LED, LOW);
 }
 
 bool isDoor(bool UPDN){
@@ -163,21 +133,11 @@ bool isDoor(bool UPDN){
 bool moveDoor(bool UPDN){
   //turn on the motor untill the door open sensor is triggered
   // or until it times out
-  if (UPDN == UP){
-
-  } else {
-
-  }
   int i = 0;
   // doorTime * 10 * 100ms pause = door time in seconds
   while ((! isDoor(UPDN)) && (i < doorTime * 1000/motorLatency)){
     // if it hasn't raised the door within the set time something's wrong
     i++;
-    if (UPDN == UP){
-
-    } else {
-
-    }
     motor(UPDN);
     delay(motorLatency); // at most 0.1 seconds latency
   }
@@ -190,6 +150,8 @@ void motor(bool UPDN) {
   if (UPDN == UP){
     digitalWrite(forward, LOW);
     digitalWrite(backward, HIGH);
+    // turn on the LED
+    digitalWrite(ERROR_LED, HIGH);
   } else {
     digitalWrite(forward, HIGH);
     digitalWrite(backward, LOW);
@@ -231,6 +193,6 @@ void flash(int num, int space){
 }
 
 // void msg(String payload){
-// Serial.print((String)payload + "\n"); // avoid clogging up the usb port
-// delay(200);
+//   Serial.print((String)payload + "\n"); // avoid clogging up the usb port
+//   delay(200);
 // }
