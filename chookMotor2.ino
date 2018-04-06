@@ -5,13 +5,14 @@ ISR(WDT_vect) { Sleepy::watchdogEvent(); }
 
 
 // ----pin assignment----
-const int forward = 9; // to motor relay
-const int backward = 10; // to motor relay
-const int ERROR_LED = 8;
-const int doorUpSensor = 5; // switch goes low when door is up
-const int doorDownSensor = 4; // switch goes low when door down
+const int testModeSwitch = 3; //put the robot into test mode
+const int doorUpSensor = 4; // switch goes low when door is up
+const int doorDownSensor = 5; // switch goes low when door down
 const int lightMeter = 6; // to LDR module
 const int lightMeterPower = 7; // to Vcc for light meter module, so we can power it up & down
+const int ERROR_LED = 8;
+const int forward = 9; // to motor relay
+const int backward = 10; // to motor relay
 
 // ----more constants-----
 const bool UP = true;
@@ -31,10 +32,12 @@ int waitAnHour = 60; // wait loop for errors
 
 
 void setup() {
+  Serial.begin(115200);
   pinMode(forward, OUTPUT);
   pinMode(backward, OUTPUT);
   pinMode(doorUpSensor, INPUT_PULLUP);
   pinMode(doorDownSensor, INPUT_PULLUP);
+  pinMode(testModeSwitch, INPUT_PULLUP);
   pinMode(lightMeter, INPUT);
   pinMode(lightMeterPower, OUTPUT);
   pinMode(ERROR_LED, OUTPUT);
@@ -53,6 +56,29 @@ void setup() {
 
 void loop() {
   //check current conditions and set door accordingly
+  msg("chookrobot 3.0");
+  if (testMode()){
+    String result = "";
+    flash(10,50);
+    msg("test mode\nraising door");
+    moveDoor(UP);
+    if (isDoor(UP)){result = "true";} else {result ="false";}
+    msg("door up = " + result);
+    delay(2000);
+    msg("lowering door");
+    moveDoor(DOWN);
+    if (isDoor(DOWN)){result = "true";} else {result ="false";}
+    msg("door down = "+ result);
+    delay(1000);
+    if (checkDaylight()){result = "true";} else {result ="false";}
+    msg("daylight = "+ result);
+    delay(1000);
+    if (checkNightTime()){result = "true";} else {result ="false";}
+    msg("night = "+ result);
+    delay(1000);
+    if (isError){result = "true";} else {result ="false";}
+    msg("error = " + result);
+  } else {
   if (checkDaylight()){
     // ------------- Day time ------------------
     if (isDoor(UP)){
@@ -65,7 +91,7 @@ void loop() {
       //succesfully opened door, reset the error count
     }
     //--------------end of the daylight part of the cycle-------------
-  } else if (checkNightTime){
+  } else if (checkNightTime()){
     // ------------- Night time ------------------
     if (isDoor(DOWN)){
       // nighttime, door closed, nothing to do
@@ -89,6 +115,7 @@ void loop() {
   }
   // end of the main loop. Shut up and go to sleep for a while
   Sleepy::loseSomeTime(loopDelay*1000);
+  }
 }
 
 
@@ -129,14 +156,17 @@ bool isDoor(bool UPDN){
   return swState;
 }
 
+bool testMode(){
+  return digitalRead(testModeSwitch)==LOW;
+}
 
 bool moveDoor(bool UPDN){
   //turn on the motor untill the door open sensor is triggered
   // or until it times out
   int i = 0;
   // doorTime * 10 * 100ms pause = door time in seconds
-  while ((! isDoor(UPDN)) && (i < doorTime * 1000/motorLatency)){
-    // if it hasn't raised the door within the set time something's wrong
+  while ((! isDoor(Umhvfkhfg,ikhvPDN)) && (i < doorTime * 1000/motorLatency)){
+    // il;jm;'lf it hasn't raised the door within the set time something's wrong
     i++;
     motor(UPDN);
     delay(motorLatency); // at most 0.1 seconds latency
@@ -192,7 +222,7 @@ void flash(int num, int space){
   }
 }
 
-// void msg(String payload){
-//   Serial.print((String)payload + "\n"); // avoid clogging up the usb port
-//   delay(200);
-// }
+void msg(String payload){
+  Serial.print((String)payload + "\n"); // avoid clogging up the usb port
+  delay(200);
+}
